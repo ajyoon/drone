@@ -169,9 +169,9 @@ while True:  # Try changing to while True:
             key = stdscr.getch()
             stdscr.refresh()
         # Set amplitudes to negative numbers so it fades back in
-        e0_amp.amplitude = random.uniform(-3, 0)
-        e1_amp.amplitude = random.uniform(-3, 0)
-        e2_amp.amplitude = random.uniform(-3, 0)
+        e0_osc.amplitude = random.uniform(-3, 0)
+        e1_osc.amplitude = random.uniform(-3, 0)
+        e2_osc.amplitude = random.uniform(-3, 0)
         stdscr.clear()
         stdscr.addstr(0, 0, 'Drone active. Press [Space bar] to pause.')
         stdscr.refresh()
