@@ -30,7 +30,7 @@ class Oscillator:
     """
     A sine wave oscillator.
     """
-    def __init__(self, frequency, sample_rate):
+    def __init__(self, frequency, sample_rate, starting_amplitude=0):
         """
         Args:
             frequency (float):
@@ -44,7 +44,41 @@ class Oscillator:
         self.cache_length = int(round((self.sample_rate / self.frequency) * 10))
         factor = float(self.frequency) * (numpy.pi * 2) / self.sample_rate
         self.wave_cache = numpy.sin(numpy.arange(self.cache_length) * factor)
-        # self.wave_cache[-1] = 0
+
+        # Set up amplitude
+        if starting_amplitude:
+            self._raw_amplitude = starting_amplitude
+        else:
+            self._raw_amplitude = 0
+        self.amplitude_drift_target = 0
+        self.amplitude_baseline = 0.01
+        self.amplitude_change_rate = 0.0001
+
+    @property
+    def amplitude(self):
+        """
+        float: Adjusted amplitude. Negative values return 0
+        """
+        if self._raw_amplitude < 0:
+            return 0
+        else:
+            return self._raw_amplitude
+
+    @amplitude.setter
+    def amplitude(self, value):
+        self._raw_amplitude = value
+
+    def step_amplitude(self, new_amplitude):
+        if random.randint(0, 1000) == 0:
+            self.amplitude_drift_target = random.uniform(0, 1)
+            # print("Moving drift target to {0}".format(self.drift_target))
+        target_amplitude = (((new_amplitude - 1) * -1) +
+                            self.amplitude_drift_target) / 2
+        difference = target_amplitude - self.amplitude
+        delta = difference / 500
+        if self.amplitude > 0.2:
+            delta -= 0.01
+        self.amplitude += delta
 
     def get_samples(self, sample_count):
         """
@@ -64,46 +98,7 @@ class Oscillator:
         self.last_played_sample = self.last_played_sample + remainder
         if self.last_played_sample > self.cache_length:
             self.last_played_sample -= self.cache_length
-        return return_array
-
-
-class WaveAmplitude:
-
-    baseline = 0.01
-    change_rate = 0.0001
-
-    def __init__(self, starting_amplitude=None):
-        if starting_amplitude is None:
-            self._raw_amplitude = 0
-        else:
-            self._raw_amplitude = starting_amplitude
-        self.drift_target = 0
-
-    @property
-    def amplitude(self):
-        """
-        float: Adjusted amplitude. Negative values return 0
-        """
-        if self._raw_amplitude < 0:
-            return 0
-        else:
-            return self._raw_amplitude
-
-    @amplitude.setter
-    def amplitude(self, value):
-        self._raw_amplitude = value
-
-    def step(self, new_amplitude):
-        # print(new_amplitude)
-        if random.randint(0, 1000) == 0:
-            self.drift_target = random.uniform(0, 1)
-            # print("Moving drift target to {0}".format(self.drift_target))
-        target_amplitude = (((new_amplitude - 1) * -1) + self.drift_target) / 2
-        difference = (target_amplitude) - self._raw_amplitude
-        delta = difference / 500
-        if self._raw_amplitude > 0.2:
-            delta -= 0.01
-        self._raw_amplitude += delta
+        return return_array * self.amplitude
 
 
 def find_amplitude(chunk):
@@ -111,13 +106,9 @@ def find_amplitude(chunk):
     return abs(chunk.max()) + abs(chunk.min()) / 2
 
 
-e1_osc = Oscillator(frequency_map[4], SAMPLE_RATE)
-e2_osc = Oscillator(frequency_map[4] * 2.0, SAMPLE_RATE)
-e0_osc = Oscillator(frequency_map[4] / 2.0, SAMPLE_RATE)
-
-e0_amp = WaveAmplitude(random.uniform(-3, 0))
-e1_amp = WaveAmplitude(random.uniform(-3, 0))
-e2_amp = WaveAmplitude(random.uniform(-3, 0))
+e1_osc = Oscillator(frequency_map[4], SAMPLE_RATE, random.uniform(-3, 0))
+e2_osc = Oscillator(frequency_map[4] * 2.0, SAMPLE_RATE, random.uniform(-3, 0))
+e0_osc = Oscillator(frequency_map[4] / 2.0, SAMPLE_RATE, random.uniform(-3, 0))
 
 
 def main_callback(in_data, frame_count, time_info, status):
@@ -127,12 +118,12 @@ def main_callback(in_data, frame_count, time_info, status):
         return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
     # Get amplitude of input
     in_amplitude = find_amplitude(in_data)
-    e1_amp.step(in_amplitude)
-    e2_amp.step(in_amplitude)
-    e0_amp.step(in_amplitude)
-    e1_chunk = e1_osc.get_samples(CHUNK_SIZE) * e1_amp.amplitude
-    e0_chunk = e0_osc.get_samples(CHUNK_SIZE) * (e0_amp.amplitude / 6)
-    e2_chunk = e2_osc.get_samples(CHUNK_SIZE) * (e2_amp.amplitude / 10)
+    e1_osc.step_amplitude(in_amplitude)
+    e2_osc.step_amplitude(in_amplitude)
+    e0_osc.step_amplitude(in_amplitude)
+    e1_chunk = e1_osc.get_samples(CHUNK_SIZE)  # * e1_amp.amplitude
+    e0_chunk = e0_osc.get_samples(CHUNK_SIZE)  # * (e0_amp.amplitude / 6)
+    e2_chunk = e2_osc.get_samples(CHUNK_SIZE)  # * (e2_amp.amplitude / 10)
     new_chunk = e1_chunk + e2_chunk + e0_chunk
     # Play sound
     return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
@@ -148,9 +139,16 @@ out_stream.start_stream()
 # Initialize tkinter
 # TODO: Use tk instead of curses
 tk_host = tkinter.Tk()
-tk_host.geometry("100x100+300+300")
+tk_host.geometry("300x200+300+300")
+
+main_note_text = 'This is the drone program for [PIECENAME].\n' \
+                 'See part for further instructions.'
+main_note = tkinter.Label(tk_host, text=main_note_text).pack(side='left')
+pause_resume_button = tkinter.Button(tk_host, text="Pause/Resume")
+
+
 tk_host.mainloop()
-# window.
+
 stdscr = curses.initscr()
 curses.noecho()
 curses.cbreak()
