@@ -249,6 +249,7 @@ tk_host.mainloop()
 while True:
     time.sleep(CHUNK_SIZE / SAMPLE_RATE)
 
-# This shouldn't be reachable, but just in case ...
+# This shouldn't be reachable, but just in case, to prevent a
+# runaway pyaudio process ...
 out_stream.close()
 pa_host.terminate()
