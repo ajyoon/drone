@@ -10,7 +10,7 @@ import tkinter
 SAMPLE_RATE = 44100
 CHUNK_SIZE = 1024
 STREAM_FORMAT = pyaudio.paFloat32
-IS_PAUSED = False
+CURRENT_MODE = 'PLAY'  # Options: PLAY, PAUSE, STOPPING
 
 frequency_map = {9: 440,        # A
                  10: 466.16,    # A# / Bb
@@ -112,10 +112,10 @@ e0_osc = Oscillator(frequency_map[4] / 2.0, SAMPLE_RATE, random.uniform(-3, 0))
 
 
 def main_callback(in_data, frame_count, time_info, status):
-    if IS_PAUSED:
-        # Return an empty chunk
-        new_chunk = numpy.zeros(frame_count, numpy.float32)
-        return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
+    # if IS_PAUSED:
+    #     # Return an empty chunk
+    #     new_chunk = numpy.zeros(frame_count, numpy.float32)
+    #     return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
     # Get amplitude of input
     in_amplitude = find_amplitude(in_data)
     e1_osc.step_amplitude(in_amplitude)
