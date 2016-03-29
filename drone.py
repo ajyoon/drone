@@ -6,13 +6,15 @@ import random
 import time
 import sys
 
-# Different names for python 2x and 3x
+# Different names for python 2 and 3
 if sys.version_info[0] == 3:
     import tkinter as tk
+    from tkinter import messagebox
 else:
     import Tkinter as tk
+    from Tkinter import messagebox
 
-DEBUG = False
+
 SAMPLE_RATE = 44100
 CHUNK_SIZE = 1024
 STREAM_FORMAT = pyaudio.paFloat32
@@ -54,7 +56,7 @@ class Oscillator:
 
         # Build self.wave chunk, a numpy array of a full period of the wave
         self.cache_length = int(round((self.sample_rate / self.frequency) * 10))
-        factor = float(self.frequency) * (numpy.pi * 2) / self.sample_rate
+        factor = self.frequency * (numpy.pi * 2) / self.sample_rate
         self.wave_cache = numpy.sin(numpy.arange(self.cache_length) * factor)
 
         # Set up amplitude
@@ -85,9 +87,6 @@ class Oscillator:
             if self.play_mode == 'ON':
                 if random.randint(0, 1000) == 0:
                     self.amp_drift_target = random.uniform(0, 1)
-                    if DEBUG:
-                        print("Moving drift target to %f" %
-                              self.amp_drift_target)
                 target_amplitude = (((new_amp - 1) * -1) +
                                     self.amp_drift_target) / 2
             elif self.play_mode == 'STOPPING':
@@ -143,9 +142,6 @@ def main_callback(in_data, frame_count, time_info, status):
     for osc in oscillators:
         osc.step_amp(in_amplitude)
         subchunks.append(osc.get_samples(CHUNK_SIZE))
-    # e1_chunk = e1_osc.get_samples(CHUNK_SIZE)  # * e1_amp.amplitude
-    # e0_chunk = e0_osc.get_samples(CHUNK_SIZE)  # * (e0_amp.amplitude / 6)
-    # e2_chunk = e2_osc.get_samples(CHUNK_SIZE)  # * (e2_amp.amplitude / 10)
     new_chunk = sum(subchunks)
     # Play sound
     return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
@@ -161,14 +157,22 @@ out_stream.start_stream()
 
 # Initialize tkinter
 tk_host = tk.Tk()
+tk_host.wm_title('"Somehow the Second Hand..." Drone Program')
 
-tk_host.geometry("300x100+300+300")
+tk_host.geometry("385x140+300+300")
 tk_host.resizable(0, 0)
 
-main_note_text = ('This is the drone program for [PIECENAME].\n'
-                  'The program starts with the oscillator paused.\n'
-                  'See part for further instructions.')
-main_note = tk.Label(tk_host, text=main_note_text, justify='left')
+main_note_text = (
+    'This is the electronic drone program for '
+    '"the second hand somehow different this time around." '
+    'The program starts with the oscillator paused. '
+    'When the conductor gives Cue A, press \'Play.\' '
+    'Once \'Play\' is pressed for the first time, a time in the '
+    'bottom left corner will start to help you stay oriented '
+    'in regards to cue timing. '
+    'See your part for further instructions.')
+main_note = tk.Label(tk_host, text=main_note_text,
+                     justify='left', wraplength=380)
 main_note.grid(row=0, column=0, columnspan=3, sticky='NE')
 
 play_pause_text = tk.StringVar(tk_host, 'Play', 'Pause/Pause')
@@ -178,6 +182,7 @@ timer_label = tk.Label(tk_host, textvariable=timer_string)
 timer_label.grid(row=2, column=0, sticky='SW')
 
 start_time = tk.DoubleVar(tk_host, 0, 'start_time')
+
 
 def increment_timer():
     if tk_host.getvar('start_time') == 0:
@@ -191,7 +196,6 @@ def increment_timer():
     display_time = "{0}:{1}".format(minutes, seconds)
     timer_string.set(display_time)
     tk_host.after(1000, increment_timer)
-    print('updating timer')
 
 
 def pause_resume_action():
@@ -215,13 +219,18 @@ def cue_p_action():
 
 
 def quit_action():
+    # Confirm that we really want to quit
+    if not messagebox.askyesno(
+            'Quit?', 'Are you sure you want to quit?'):
+        return False
     out_stream.close()
     pa_host.terminate()
     quit()
 
 
 def close_button():
-    quit_action()
+    if not quit_action():
+        return
     tk_host.destroy()
 
 
