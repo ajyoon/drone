@@ -4,8 +4,12 @@ import numpy
 import pyaudio
 import random
 import time
-import curses
-import tkinter
+import sys
+
+if sys.version_info[0] == 3:
+    import tkinter as tk
+else:
+    import Tkinter as tk
 
 DEBUG = False
 SAMPLE_RATE = 44100
@@ -13,24 +17,25 @@ CHUNK_SIZE = 1024
 STREAM_FORMAT = pyaudio.paFloat32
 # CURRENT_MODE = 'OFF'  # Options: ON, OFF, STOPPING
 
-frequency_map = {9: 440,        # A
-                 10: 466.16,    # A# / Bb
-                 11: 493.88,    # B
-                 0: 523.25,     # C
-                 1: 554.37,     # C# / Db
-                 2: 587.33,     # D
-                 3: 622.25,     # D# / Eb
-                 4: 659.26,     # E
-                 5: 698.46,     # F
-                 6: 739.99,     # F# / Gb
-                 7: 783.99,     # G
-                 8: 830.61}     # G# / Ab
+frequency_map = {9: 440,  # A
+                 10: 466.16,  # A# / Bb
+                 11: 493.88,  # B
+                 0: 523.25,  # C
+                 1: 554.37,  # C# / Db
+                 2: 587.33,  # D
+                 3: 622.25,  # D# / Eb
+                 4: 659.26,  # E
+                 5: 698.46,  # F
+                 6: 739.99,  # F# / Gb
+                 7: 783.99,  # G
+                 8: 830.61}  # G# / Ab
 
 
 class Oscillator:
     """
     A sine wave oscillator.
     """
+
     def __init__(self, frequency, sample_rate, starting_amp=0,
                  start_mode='OFF'):
         """
@@ -109,7 +114,7 @@ class Oscillator:
         full_count, remainder = divmod(sample_count, self.cache_length)
         final_subarray = rolled_array[:remainder]
         return_array = numpy.concatenate((numpy.tile(rolled_array, full_count),
-                                         final_subarray))
+                                          final_subarray))
 
         self.last_played_sample = self.last_played_sample + remainder
         if self.last_played_sample > self.cache_length:
@@ -145,6 +150,7 @@ def main_callback(in_data, frame_count, time_info, status):
     # Play sound
     return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
 
+
 pa_host = pyaudio.PyAudio()
 out_stream = pyaudio.Stream(pa_host, format=STREAM_FORMAT,
                             channels=1, rate=SAMPLE_RATE,
@@ -154,7 +160,7 @@ out_stream = pyaudio.Stream(pa_host, format=STREAM_FORMAT,
 out_stream.start_stream()
 
 # Initialize tkinter
-tk_host = tkinter.Tk()
+tk_host = tk.Tk()
 
 tk_host.geometry("300x100+300+300")
 tk_host.resizable(0, 0)
@@ -162,10 +168,10 @@ tk_host.resizable(0, 0)
 main_note_text = ('This is the drone program for [PIECENAME].\n'
                   'The program starts with the oscillator paused.\n'
                   'See part for further instructions.')
-main_note = tkinter.Label(tk_host, text=main_note_text, justify='left')
+main_note = tk.Label(tk_host, text=main_note_text, justify='left')
 main_note.grid(row=0, column=0, columnspan=3, sticky='NE')
 
-play_pause_text = tkinter.StringVar(tk_host, 'Play', 'Pause/Pause')
+play_pause_text = tk.StringVar(tk_host, 'Play', 'Pause/Pause')
 
 
 def pause_resume_action():
@@ -196,14 +202,15 @@ def close_button():
     quit_action()
     tk_host.destroy()
 
+
 tk_host.protocol('WM_DELETE_WINDOW', close_button)
 
-pause_resume_button = tkinter.Button(tk_host, textvariable=play_pause_text,
-                                     command=pause_resume_action)
+pause_resume_button = tk.Button(tk_host, textvariable=play_pause_text,
+                                command=pause_resume_action)
 pause_resume_button.grid(row=1, column=0, sticky='SW')
-cue_p_button = tkinter.Button(tk_host, text="Cue P", command=cue_p_action)
+cue_p_button = tk.Button(tk_host, text="Cue P", command=cue_p_action)
 cue_p_button.grid(row=1, column=1, sticky='S')
-quit_button = tkinter.Button(tk_host, text="Quit", command=quit_action)
+quit_button = tk.Button(tk_host, text="Quit", command=quit_action)
 quit_button.grid(row=1, column=2, sticky='SE')
 
 tk_host.mainloop()
@@ -211,5 +218,6 @@ tk_host.mainloop()
 while True:
     time.sleep(CHUNK_SIZE / SAMPLE_RATE)
 
+# This shouldn't be reachable, but just in case ...
 out_stream.close()
 pa_host.terminate()
