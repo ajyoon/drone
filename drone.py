@@ -7,10 +7,11 @@ import time
 import curses
 import tkinter
 
+DEBUG = False
 SAMPLE_RATE = 44100
 CHUNK_SIZE = 1024
 STREAM_FORMAT = pyaudio.paFloat32
-CURRENT_MODE = 'PLAY'  # Options: PLAY, PAUSE, STOPPING
+# CURRENT_MODE = 'OFF'  # Options: ON, OFF, STOPPING
 
 frequency_map = {9: 440,        # A
                  10: 466.16,    # A# / Bb
@@ -30,15 +31,19 @@ class Oscillator:
     """
     A sine wave oscillator.
     """
-    def __init__(self, frequency, sample_rate, starting_amplitude=0):
+    def __init__(self, frequency, sample_rate, starting_amp=0,
+                 start_mode='OFF'):
         """
         Args:
             frequency (float):
             sample_rate (int):
+            starting_amp (float):
+            start_mode (str): legal values: ON, OFF, STOPPING
         """
         self.frequency = frequency
         self.sample_rate = sample_rate
         self.last_played_sample = 0
+        self.play_mode = start_mode  # legal values: ON, OFF, STOPPING
 
         # Build self.wave chunk, a numpy array of a full period of the wave
         self.cache_length = int(round((self.sample_rate / self.frequency) * 10))
@@ -46,39 +51,50 @@ class Oscillator:
         self.wave_cache = numpy.sin(numpy.arange(self.cache_length) * factor)
 
         # Set up amplitude
-        if starting_amplitude:
-            self._raw_amplitude = starting_amplitude
+        if starting_amp:
+            self._raw_amp = starting_amp
         else:
-            self._raw_amplitude = 0
-        self.amplitude_drift_target = 0
-        self.amplitude_baseline = 0.01
-        self.amplitude_change_rate = 0.0001
+            self._raw_amp = 0
+        self.amp_drift_target = 0
+        self.amp_baseline = 0.01
+        self.amp_change_rate = 0.0001
 
     @property
-    def amplitude(self):
+    def amp(self):
         """
         float: Adjusted amplitude. Negative values return 0
         """
-        if self._raw_amplitude < 0:
+        if self._raw_amp < 0:
             return 0
         else:
-            return self._raw_amplitude
+            return self._raw_amp
 
-    @amplitude.setter
-    def amplitude(self, value):
-        self._raw_amplitude = value
+    @amp.setter
+    def amp(self, value):
+        self._raw_amp = value
 
-    def step_amplitude(self, new_amplitude):
-        if random.randint(0, 1000) == 0:
-            self.amplitude_drift_target = random.uniform(0, 1)
-            # print("Moving drift target to {0}".format(self.drift_target))
-        target_amplitude = (((new_amplitude - 1) * -1) +
-                            self.amplitude_drift_target) / 2
-        difference = target_amplitude - self.amplitude
-        delta = difference / 500
-        if self.amplitude > 0.2:
-            delta -= 0.01
-        self.amplitude += delta
+    def step_amp(self, new_amp):
+        if self.play_mode == 'OFF':
+            self.amp = 0
+        else:
+            if self.play_mode == 'ON':
+                if random.randint(0, 1000) == 0:
+                    self.amp_drift_target = random.uniform(0, 1)
+                    if DEBUG:
+                        print("Moving drift target to %f" %
+                              self.amp_drift_target)
+                target_amplitude = (((new_amp - 1) * -1) +
+                                    self.amp_drift_target) / 2
+            elif self.play_mode == 'STOPPING':
+                target_amplitude = -1
+            else:
+                raise ValueError("Oscillator.play_mode of %s is not valid." %
+                                 str(self.play_mode))
+            difference = target_amplitude - self.amp
+            delta = difference / 500
+            if self.amp > 0.2:
+                delta -= 0.01
+            self.amp += delta
 
     def get_samples(self, sample_count):
         """
@@ -98,7 +114,7 @@ class Oscillator:
         self.last_played_sample = self.last_played_sample + remainder
         if self.last_played_sample > self.cache_length:
             self.last_played_sample -= self.cache_length
-        return return_array * self.amplitude
+        return return_array * self.amp
 
 
 def find_amplitude(chunk):
@@ -106,25 +122,25 @@ def find_amplitude(chunk):
     return abs(chunk.max()) + abs(chunk.min()) / 2
 
 
-e1_osc = Oscillator(frequency_map[4], SAMPLE_RATE, random.uniform(-3, 0))
-e2_osc = Oscillator(frequency_map[4] * 2.0, SAMPLE_RATE, random.uniform(-3, 0))
-e0_osc = Oscillator(frequency_map[4] / 2.0, SAMPLE_RATE, random.uniform(-3, 0))
-
+oscillators = [Oscillator(frequency_map[4] / 2.0,
+                          SAMPLE_RATE, random.uniform(-3, 0)),
+               Oscillator(frequency_map[4],
+                          SAMPLE_RATE, random.uniform(-3, 0)),
+               Oscillator(frequency_map[4] * 2.0,
+                          SAMPLE_RATE, random.uniform(-3, 0))
+               ]
 
 def main_callback(in_data, frame_count, time_info, status):
-    # if IS_PAUSED:
-    #     # Return an empty chunk
-    #     new_chunk = numpy.zeros(frame_count, numpy.float32)
-    #     return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
     # Get amplitude of input
     in_amplitude = find_amplitude(in_data)
-    e1_osc.step_amplitude(in_amplitude)
-    e2_osc.step_amplitude(in_amplitude)
-    e0_osc.step_amplitude(in_amplitude)
-    e1_chunk = e1_osc.get_samples(CHUNK_SIZE)  # * e1_amp.amplitude
-    e0_chunk = e0_osc.get_samples(CHUNK_SIZE)  # * (e0_amp.amplitude / 6)
-    e2_chunk = e2_osc.get_samples(CHUNK_SIZE)  # * (e2_amp.amplitude / 10)
-    new_chunk = e1_chunk + e2_chunk + e0_chunk
+    subchunks = []
+    for osc in oscillators:
+        osc.step_amp(in_amplitude)
+        subchunks.append(osc.get_samples(CHUNK_SIZE))
+    # e1_chunk = e1_osc.get_samples(CHUNK_SIZE)  # * e1_amp.amplitude
+    # e0_chunk = e0_osc.get_samples(CHUNK_SIZE)  # * (e0_amp.amplitude / 6)
+    # e2_chunk = e2_osc.get_samples(CHUNK_SIZE)  # * (e2_amp.amplitude / 10)
+    new_chunk = sum(subchunks)
     # Play sound
     return new_chunk.astype(numpy.float32).tostring(), pyaudio.paContinue
 
@@ -137,48 +153,50 @@ out_stream = pyaudio.Stream(pa_host, format=STREAM_FORMAT,
 out_stream.start_stream()
 
 # Initialize tkinter
-# TODO: Use tk instead of curses
 tk_host = tkinter.Tk()
+
 tk_host.geometry("300x200+300+300")
 
 main_note_text = 'This is the drone program for [PIECENAME].\n' \
                  'See part for further instructions.'
-main_note = tkinter.Label(tk_host, text=main_note_text).pack(side='left')
-pause_resume_button = tkinter.Button(tk_host, text="Pause/Resume")
+main_note = tkinter.Label(tk_host, text=main_note_text)
+main_note.pack(side='top')
+play_pause_text = tkinter.StringVar(tk_host, 'Play', 'Pause/Pause')
 
+
+def pause_resume_action():
+    for osc in oscillators:
+        if osc.play_mode == 'ON':
+            osc.play_mode = 'OFF'
+            play_pause_text.set('Play')
+        else:
+            osc.play_mode = 'ON'
+            play_pause_text.set('Pause')
+            # Set amplitudes to negative numbers so it fades back in
+            osc.amp = random.uniform(-3, 0)
+
+
+def cue_p_action():
+    for osc in oscillators:
+        osc.play_mode = 'STOPPING'
+        play_pause_text.set('PLAY')
+
+
+def quit_action():
+    quit()
+
+pause_resume_button = tkinter.Button(tk_host, textvariable=play_pause_text,
+                                     command=pause_resume_action)
+pause_resume_button.pack(side='right')
+cue_p_button = tkinter.Button(tk_host, text="Cue P", command=cue_p_action)
+cue_p_button.pack(side='right')
+quit_button = tkinter.Button(tk_host, text="Quit", command=quit_action)
+quit_button.pack(side='right')
 
 tk_host.mainloop()
 
-stdscr = curses.initscr()
-curses.noecho()
-curses.cbreak()
-stdscr.nodelay(0)
-
 while True:  # Try changing to while True:
     time.sleep(CHUNK_SIZE / SAMPLE_RATE)
-    # Check for input
-    key = stdscr.getch()
-    if key == 32:
-        IS_PAUSED = True
-        stdscr.clear()
-        stdscr.addstr(0, 0, 'Drone paused. Press [Space bar] to resume.')
-        stdscr.refresh()
-        key = -1
-        while not key == 32:
-            time.sleep(0.1)
-            key = stdscr.getch()
-            stdscr.refresh()
-        # Set amplitudes to negative numbers so it fades back in
-        e0_osc.amplitude = random.uniform(-3, 0)
-        e1_osc.amplitude = random.uniform(-3, 0)
-        e2_osc.amplitude = random.uniform(-3, 0)
-        stdscr.clear()
-        stdscr.addstr(0, 0, 'Drone active. Press [Space bar] to pause.')
-        stdscr.refresh()
-        IS_PAUSED = False
-    if key == 27:
-        curses.endwin()
-        break
 
 out_stream.close()
 pa_host.terminate()
