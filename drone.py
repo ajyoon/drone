@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import numpy
 import pyaudio
@@ -6,6 +6,7 @@ import random
 import time
 import sys
 
+# Different names for python 2x and 3x
 if sys.version_info[0] == 3:
     import tkinter as tk
 else:
@@ -15,7 +16,6 @@ DEBUG = False
 SAMPLE_RATE = 44100
 CHUNK_SIZE = 1024
 STREAM_FORMAT = pyaudio.paFloat32
-# CURRENT_MODE = 'OFF'  # Options: ON, OFF, STOPPING
 
 frequency_map = {9: 440,  # A
                  10: 466.16,  # A# / Bb
@@ -36,13 +36,15 @@ class Oscillator:
     A sine wave oscillator.
     """
 
-    def __init__(self, frequency, sample_rate, starting_amp=0,
+    def __init__(self, frequency, sample_rate,
+                 amp_factor=1, starting_amp=0,
                  start_mode='OFF'):
         """
         Args:
             frequency (float):
             sample_rate (int):
             starting_amp (float):
+            amp_factor (float):
             start_mode (str): legal values: ON, OFF, STOPPING
         """
         self.frequency = frequency
@@ -56,10 +58,8 @@ class Oscillator:
         self.wave_cache = numpy.sin(numpy.arange(self.cache_length) * factor)
 
         # Set up amplitude
-        if starting_amp:
-            self._raw_amp = starting_amp
-        else:
-            self._raw_amp = 0
+        self._raw_amp = starting_amp
+        self.amp_factor = amp_factor
         self.amp_drift_target = 0
         self.amp_baseline = 0.01
         self.amp_change_rate = 0.0001
@@ -91,13 +91,13 @@ class Oscillator:
                 target_amplitude = (((new_amp - 1) * -1) +
                                     self.amp_drift_target) / 2
             elif self.play_mode == 'STOPPING':
-                target_amplitude = -1
+                target_amplitude = 0
             else:
-                raise ValueError("Oscillator.play_mode of %s is not valid." %
-                                 str(self.play_mode))
+                raise ValueError
+
             difference = target_amplitude - self.amp
-            delta = difference / 500
-            if self.amp > 0.2:
+            delta = self.amp_change_rate * numpy.sign(difference)
+            if self.amp > 0.7:
                 delta -= 0.01
             self.amp += delta
 
@@ -119,7 +119,7 @@ class Oscillator:
         self.last_played_sample = self.last_played_sample + remainder
         if self.last_played_sample > self.cache_length:
             self.last_played_sample -= self.cache_length
-        return return_array * self.amp
+        return return_array * (self.amp * self.amp_factor)
 
 
 def find_amplitude(chunk):
@@ -127,12 +127,12 @@ def find_amplitude(chunk):
     return abs(chunk.max()) + abs(chunk.min()) / 2
 
 
-oscillators = [Oscillator(frequency_map[4] / 2.0,
-                          SAMPLE_RATE, random.uniform(-3, 0)),
-               Oscillator(frequency_map[4],
-                          SAMPLE_RATE, random.uniform(-3, 0)),
-               Oscillator(frequency_map[4] * 2.0,
-                          SAMPLE_RATE, random.uniform(-3, 0))
+oscillators = [Oscillator(frequency_map[4] / 2.0, SAMPLE_RATE,
+                          0.7, random.uniform(-3, 0)),
+               Oscillator(frequency_map[4], SAMPLE_RATE,
+                          1, random.uniform(-3, 0)),
+               Oscillator(frequency_map[4] * 2.0, SAMPLE_RATE,
+                          0.5, random.uniform(-3, 0))
                ]
 
 
@@ -189,7 +189,7 @@ def pause_resume_action():
 def cue_p_action():
     for osc in oscillators:
         osc.play_mode = 'STOPPING'
-        play_pause_text.set('PLAY')
+        play_pause_text.set('Play')
 
 
 def quit_action():
