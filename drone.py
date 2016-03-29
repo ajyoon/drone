@@ -173,6 +173,26 @@ main_note.grid(row=0, column=0, columnspan=3, sticky='NE')
 
 play_pause_text = tk.StringVar(tk_host, 'Play', 'Pause/Pause')
 
+timer_string = tk.StringVar(tk_host, '0:00', 'Timer')
+timer_label = tk.Label(tk_host, textvariable=timer_string)
+timer_label.grid(row=2, column=0, sticky='SW')
+
+start_time = tk.DoubleVar(tk_host, 0, 'start_time')
+
+def increment_timer():
+    if tk_host.getvar('start_time') == 0:
+        tk_host.setvar('start_time', time.time())
+    elapsed = int(time.time() - tk_host.getvar('start_time'))
+    minutes, seconds = divmod(elapsed, 60)
+    minutes = str(minutes)
+    seconds = str(seconds)
+    if len(seconds) == 1:
+        seconds = '0%s' % seconds
+    display_time = "{0}:{1}".format(minutes, seconds)
+    timer_string.set(display_time)
+    tk_host.after(1000, increment_timer)
+    print('updating timer')
+
 
 def pause_resume_action():
     for osc in oscillators:
@@ -184,6 +204,8 @@ def pause_resume_action():
             play_pause_text.set('Pause')
             # Set amplitudes to negative numbers so it fades back in
             osc.amp = random.uniform(-3, 0)
+            if tk_host.getvar('start_time') == 0:
+                increment_timer()
 
 
 def cue_p_action():
