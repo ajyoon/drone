@@ -20,8 +20,7 @@ This may take some time.
 To launch the program, simply run drone.py with python:
 ```bash
 cd /path/to/drone/folder
-python3 drone.py
-# In some cases you may need to simply call 'python' instead of 'python3' 
+python drone.py
 ```
 
 
