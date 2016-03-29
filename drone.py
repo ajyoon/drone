@@ -130,6 +130,7 @@ oscillators = [Oscillator(frequency_map[4] / 2.0,
                           SAMPLE_RATE, random.uniform(-3, 0))
                ]
 
+
 def main_callback(in_data, frame_count, time_info, status):
     # Get amplitude of input
     in_amplitude = find_amplitude(in_data)
@@ -155,12 +156,15 @@ out_stream.start_stream()
 # Initialize tkinter
 tk_host = tkinter.Tk()
 
-tk_host.geometry("300x200+300+300")
+tk_host.geometry("300x100+300+300")
+tk_host.resizable(0, 0)
 
-main_note_text = 'This is the drone program for [PIECENAME].\n' \
-                 'See part for further instructions.'
-main_note = tkinter.Label(tk_host, text=main_note_text)
-main_note.pack(side='top')
+main_note_text = ('This is the drone program for [PIECENAME].\n'
+                  'The program starts with the oscillator paused.\n'
+                  'See part for further instructions.')
+main_note = tkinter.Label(tk_host, text=main_note_text, justify='left')
+main_note.grid(row=0, column=0, columnspan=3, sticky='NE')
+
 play_pause_text = tkinter.StringVar(tk_host, 'Play', 'Pause/Pause')
 
 
@@ -183,19 +187,28 @@ def cue_p_action():
 
 
 def quit_action():
+    out_stream.close()
+    pa_host.terminate()
     quit()
+
+
+def close_button():
+    quit_action()
+    tk_host.destroy()
+
+tk_host.protocol('WM_DELETE_WINDOW', close_button)
 
 pause_resume_button = tkinter.Button(tk_host, textvariable=play_pause_text,
                                      command=pause_resume_action)
-pause_resume_button.pack(side='right')
+pause_resume_button.grid(row=1, column=0, sticky='SW')
 cue_p_button = tkinter.Button(tk_host, text="Cue P", command=cue_p_action)
-cue_p_button.pack(side='right')
+cue_p_button.grid(row=1, column=1, sticky='S')
 quit_button = tkinter.Button(tk_host, text="Quit", command=quit_action)
-quit_button.pack(side='right')
+quit_button.grid(row=1, column=2, sticky='SE')
 
 tk_host.mainloop()
 
-while True:  # Try changing to while True:
+while True:
     time.sleep(CHUNK_SIZE / SAMPLE_RATE)
 
 out_stream.close()
