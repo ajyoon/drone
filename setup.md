@@ -1,14 +1,18 @@
 ﻿Setup instructions for drone.py
 
 Download and unpack the project files.
-Through a browser: https://github.com/ajyoon/drone/archive/master.zip
-Through git in the command line: 
+1) Through a browser (recommended): https://github.com/ajyoon/drone/archive/master.zip
+2) Extract the files and place anywhere in your computer.
+
+Or through git in the command line: 
 ```bash
+cd /path/to/where/you/want/the/program
 git clone https://github.com/ajyoon/drone.git
 ```
 
-Install Python 3 (At least v. 3.3)
+Install the latest version of Python 3.
 https://www.python.org/downloads/
+Although this program has been tested and shown to work in Python version 3.4.3 and 2.7.6, 3 is recommended as the program was built primarily on it.
 
 Install project requirements using pip from your system's command line
 ```bash
