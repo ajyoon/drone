@@ -2,7 +2,7 @@ Operation Instructions
 ======================
 
 These are instructions for how to operate the program.
-For help setting up the program, see setup_instructions.txt.
+For help setting up the program, see setup_instructions.txt
 
 To operate the drone program, simply run it with Python
 from the command line.
@@ -12,4 +12,8 @@ python drone.py
 ------------------------------
 
 When the performance begins (Cue A), press Play.
+
+On Cue K, press Pause.
+
+On Cue P, press Cue P. 
 
