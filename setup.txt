@@ -31,3 +31,15 @@ This may take some time.
 cd /path/to/drone/folder
 python drone.py
 ------------------------
+Make sure that the input and output devices are connected to your computer
+before launching the program.
+
+The program uses input from your computer's primary audio input channel.
+This should lead to a simple microphone which captures the sound on stage.
+The exact position and quality of the microphone is not crucial, as
+it is only used to measure the amplitude of the on-stage sound.
+
+Audio output should be in the form of a simple on-stage amplifier,
+connected to the computer's primary audio output channel.
+
+See operation_instructions.txt for a guide on using the program itself.
