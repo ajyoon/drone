@@ -1,0 +1,14 @@
+Operation Instructions
+======================
+
+These are instructions for how to operate the program.
+For help setting up the program, see setup_instructions.txt.
+
+To operate the drone program, simply run it with Python
+from the command line.
+------------------------------
+cd path/to/drone/folder
+python drone.py
+------------------------------
+
+
