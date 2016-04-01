@@ -12,7 +12,7 @@ if sys.version_info[0] == 3:
     from tkinter import messagebox
 else:
     import Tkinter as tk
-    from Tkinter import messagebox
+    import tkMessageBox as messagebox
 
 
 SAMPLE_RATE = 44100
