@@ -10,10 +10,14 @@ from the command line.
 cd path/to/drone/folder
 python drone.py
 ------------------------------
+Make sure that your input and output devices are set up
+and plugged in before starting the program.
 
 When the performance begins (Cue A), press Play.
 
 On Cue K, press Pause.
+
+At the end of Cue K, press Play again.
 
 On Cue P, press Cue P. 
 
