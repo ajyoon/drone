@@ -1,2 +1,2 @@
-numpy
-pyaudio
+numpy>=1.8.2
+PyAudio>=0.2.7
