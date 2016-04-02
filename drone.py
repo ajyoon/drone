@@ -6,13 +6,14 @@ import random
 import time
 import sys
 
-# Different names for python 2 and 3
+# Make sure we're running the right version of Python
 if sys.version_info[0] == 3:
     import tkinter as tk
     from tkinter import messagebox
 else:
-    import Tkinter as tk
-    import tkMessageBox as messagebox
+    print("This program must be run on Python 3, make sure Python 3 \n"
+          "is on your system path, see the Python website for help.")
+    quit(1)
 
 
 SAMPLE_RATE = 44100
