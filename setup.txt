@@ -3,7 +3,7 @@
 
 1) Download and unpack the project files.
 
-Through a browser (recommended):
+Through an internet browser (recommended):
 Download and extract project folder.
 https://github.com/ajyoon/drone/archive/master.zip
 
@@ -19,7 +19,7 @@ Although this program has been tested and shown to work in
 Python version 3.4.3 and 2.7.6, 3 is recommended as the
 program was built primarily on it.
 
-3) Install project requirements using pip from your system's terminal:
+3) Install project requirements using pip from your computer's terminal:
 -------------------------------
 cd /path/to/drone/folder
 pip install -r requirements.txt
@@ -31,7 +31,7 @@ This may take some time.
 cd /path/to/drone/folder
 python drone.py
 ------------------------
-Make sure that the input and output devices are connected to your computer
+Make sure that the input and output devices are connected
 before launching the program.
 
 The program uses input from your computer's primary audio input channel.
@@ -40,6 +40,8 @@ The exact position and quality of the microphone is not crucial, as
 it is only used to measure the amplitude of the on-stage sound.
 
 Audio output should be in the form of a simple on-stage amplifier,
-connected to the computer's primary audio output channel.
+connected to the computer's primary audio output channel. The computer's
+master volume level should be configured such that the drone typically matches
+the level of the violins and violas -  a very quiet pianissimo.
 
 See operation_instructions.txt for a guide on using the program itself.
