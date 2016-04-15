@@ -158,7 +158,7 @@ out_stream.start_stream()
 
 # Initialize tkinter
 tk_host = tk.Tk()
-tk_host.wm_title('"Somehow the Second Hand..." Drone Program')
+tk_host.wm_title('"the second hand somehow ..." drone program')
 
 tk_host.geometry("385x140+300+300")
 tk_host.resizable(0, 0)
