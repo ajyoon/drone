@@ -6,6 +6,8 @@ import random
 import time
 import sys
 
+from chance.rand import weighted_rand
+
 # Make sure we're running the right version of Python
 if sys.version_info[0] == 3:
     import tkinter as tk
@@ -56,16 +58,20 @@ class Oscillator:
         self.play_mode = start_mode  # legal values: ON, OFF, STOPPING
 
         # Build self.wave chunk, a numpy array of a full period of the wave
-        self.cache_length = int(round((self.sample_rate / self.frequency) * 10))
+        self.cache_length = round(self.sample_rate / self.frequency)
         factor = self.frequency * (numpy.pi * 2) / self.sample_rate
         self.wave_cache = numpy.sin(numpy.arange(self.cache_length) * factor)
 
         # Set up amplitude
         self._raw_amp = starting_amp
         self.amp_factor = amp_factor
+        self.amp_drift_target_weights = [
+            (-1, 0), (0.1, 12), (0.2, 4), (0.3, 0)]
         self.amp_drift_target = 0
-        self.amp_baseline = 0.01
-        self.amp_change_rate = 0.0001
+        self.amp_change_rate_weights = [(0.0001, 100), (0.001, 5), (0.01, 1)]
+        self.amp_change_rate = 0.000001
+        self.amp_move_freq_weights = [(0.001, 10), (0.01, 2)]
+        self.amp_move_freq = 0.0015
 
     @property
     def amp(self):
@@ -81,24 +87,33 @@ class Oscillator:
     def amp(self, value):
         self._raw_amp = value
 
-    def step_amp(self, new_amp):
+    def refresh_amp_elements(self):
+        self.amp_move_freq = weighted_rand(self.amp_move_freq_weights)
+        self.amp_drift_target = weighted_rand(self.amp_drift_target_weights)
+        self.amp_change_rate = weighted_rand(self.amp_change_rate_weights)
+
+    def step_amp(self):
         if self.play_mode == 'OFF':
             self.amp = 0
         else:
             if self.play_mode == 'ON':
-                if random.randint(0, 1000) == 0:
-                    self.amp_drift_target = random.uniform(0, 1)
-                target_amplitude = (((new_amp - 1) * -1) +
-                                    self.amp_drift_target) / 2
+                # Roll for a chance to change the drift target and change rate
+                if random.uniform(0, 1) < self.amp_move_freq:
+                    self.refresh_amp_elements()
+                # step the amplitude
+                # target_amplitude = (((input_amp - 1) * -1) +
+                #                     self.amp_drift_target)
+                target_amplitude = self.amp_drift_target
             elif self.play_mode == 'STOPPING':
-                target_amplitude = 0
+                self.amp_change_rate = 0.00015
+                target_amplitude = -1
             else:
                 raise ValueError
 
             difference = target_amplitude - self.amp
             delta = self.amp_change_rate * numpy.sign(difference)
-            if self.amp > 0.7:
-                delta -= 0.01
+            if self.amp > 0.5:
+                delta -= 0.001
             self.amp += delta
 
     def get_samples(self, sample_count):
@@ -127,21 +142,24 @@ def find_amplitude(chunk):
     return abs(chunk.max()) + abs(chunk.min()) / 2
 
 
-oscillators = [Oscillator(frequency_map[4] / 2.0, SAMPLE_RATE,
-                          0.7, random.uniform(-3, 0)),
-               Oscillator(frequency_map[4], SAMPLE_RATE,
-                          1, random.uniform(-3, 0)),
-               Oscillator(frequency_map[4] * 2.0, SAMPLE_RATE,
-                          0.5, random.uniform(-3, 0))
+pitches = [
+    frequency_map[4] / 2.0,
+    frequency_map[4],
+    frequency_map[4] * 2.0
+    ]
+
+oscillators = [Oscillator(freq, SAMPLE_RATE,
+                          1, random.uniform(-8, 0))
+               for freq in pitches
                ]
 
 
 def main_callback(in_data, frame_count, time_info, status):
     # Get amplitude of input
-    in_amplitude = find_amplitude(in_data)
+    # in_amplitude = find_amplitude(in_data)
     subchunks = []
     for osc in oscillators:
-        osc.step_amp(in_amplitude)
+        osc.step_amp()
         subchunks.append(osc.get_samples(CHUNK_SIZE))
     new_chunk = sum(subchunks)
     # Play sound
@@ -185,6 +203,13 @@ timer_label.grid(row=2, column=0, sticky='SW')
 start_time = tk.DoubleVar(tk_host, 0, 'start_time')
 
 
+def print_amps():
+    for osc in oscillators:
+        bar_length = int((osc.amp / 1) * 100)
+        print('{0}: {1}'.format(osc.frequency, '.' * bar_length))
+    print('============================================')
+
+
 def increment_timer():
     if tk_host.getvar('start_time') == 0:
         tk_host.setvar('start_time', time.time())
@@ -196,6 +221,9 @@ def increment_timer():
         seconds = '0%s' % seconds
     display_time = "{0}:{1}".format(minutes, seconds)
     timer_string.set(display_time)
+
+    print_amps()
+
     tk_host.after(1000, increment_timer)
 
 
@@ -213,7 +241,7 @@ def pause_resume_action():
                 increment_timer()
 
 
-def cue_p_action():
+def fade_out_action():
     for osc in oscillators:
         osc.play_mode = 'STOPPING'
         play_pause_text.set('Play')
@@ -240,8 +268,8 @@ tk_host.protocol('WM_DELETE_WINDOW', close_button)
 pause_resume_button = tk.Button(tk_host, textvariable=play_pause_text,
                                 command=pause_resume_action)
 pause_resume_button.grid(row=1, column=0, sticky='SW')
-cue_p_button = tk.Button(tk_host, text="Cue P", command=cue_p_action)
-cue_p_button.grid(row=1, column=1, sticky='S')
+fade_out_button = tk.Button(tk_host, text="Cue P", command=fade_out_action)
+fade_out_button.grid(row=1, column=1, sticky='S')
 quit_button = tk.Button(tk_host, text="Quit", command=quit_action)
 quit_button.grid(row=1, column=2, sticky='SE')
 
