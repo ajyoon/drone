@@ -66,7 +66,7 @@ class Oscillator:
         self._raw_amp = starting_amp
         self.amp_factor = amp_factor
         self.amp_drift_target_weights = [
-            (-1, 0), (0.1, 12), (0.2, 4), (0.3, 0)]
+            (-0.3, 0), (0.1, 12), (0.2, 4), (0.3, 0)]
         self.amp_drift_target = 0
         self.amp_change_rate_weights = [(0.0001, 100), (0.001, 5), (0.01, 1)]
         self.amp_change_rate = 0.000001
