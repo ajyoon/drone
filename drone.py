@@ -178,7 +178,7 @@ out_stream.start_stream()
 tk_host = tk.Tk()
 tk_host.wm_title('"the second hand somehow ..." drone program')
 
-tk_host.geometry("385x140+300+300")
+tk_host.geometry("400x140+300+300")
 tk_host.resizable(0, 0)
 
 main_note_text = (
@@ -192,7 +192,7 @@ main_note_text = (
     'See your part for further instructions.')
 main_note = tk.Label(tk_host, text=main_note_text,
                      justify='left', wraplength=380)
-main_note.grid(row=0, column=0, columnspan=3, sticky='NE')
+main_note.grid(row=0, column=0, columnspan=4, sticky='NE')
 
 play_pause_text = tk.StringVar(tk_host, 'Play', 'Pause/Pause')
 
@@ -247,6 +247,10 @@ def fade_out_action():
         play_pause_text.set('Play')
 
 
+def timer_reset_action():
+    tk_host.setvar('start_time', time.time())
+
+
 def quit_action():
     # Confirm that we really want to quit
     if not messagebox.askyesno(
@@ -270,8 +274,11 @@ pause_resume_button = tk.Button(tk_host, textvariable=play_pause_text,
 pause_resume_button.grid(row=1, column=0, sticky='SW')
 fade_out_button = tk.Button(tk_host, text="Cue P", command=fade_out_action)
 fade_out_button.grid(row=1, column=1, sticky='S')
+timer_reset_button = tk.Button(tk_host, text="Reset Timer",
+                               command=timer_reset_action)
+timer_reset_button.grid(row=1, column=2, sticky='S')
 quit_button = tk.Button(tk_host, text="Quit", command=quit_action)
-quit_button.grid(row=1, column=2, sticky='SE')
+quit_button.grid(row=1, column=3, sticky='SE')
 
 tk_host.mainloop()
 
